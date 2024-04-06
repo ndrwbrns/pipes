@@ -14,7 +14,7 @@ function clearGrid() {
 }
 
 var textures = {};
-var Pipe = function(scene, options) {
+var Pipe = function (scene, options) {
   var self = this;
   var pipeRadius = 0.2;
   var ballJointRadius = pipeRadius * 1.5;
@@ -38,7 +38,7 @@ var Pipe = function(scene, options) {
       shininess: 100,
     });
   }
-  var makeCylinderBetweenPoints = function(fromPoint, toPoint, material) {
+  var makeCylinderBetweenPoints = function (fromPoint, toPoint, material) {
     var deltaVector = new THREE.Vector3().subVectors(toPoint, fromPoint);
     var arrow = new THREE.ArrowHelper(
       deltaVector.clone().normalize(),
@@ -60,7 +60,7 @@ var Pipe = function(scene, options) {
 
     self.object3d.add(mesh);
   };
-  var makeBallJoint = function(position) {
+  var makeBallJoint = function (position) {
     var ball = new THREE.Mesh(
       new THREE.SphereGeometry(ballJointRadius, 8, 8),
       self.material
@@ -68,7 +68,7 @@ var Pipe = function(scene, options) {
     ball.position.copy(position);
     self.object3d.add(ball);
   };
-  var makeTeapotJoint = function(position) {
+  var makeTeapotJoint = function (position) {
     //var teapotTexture = textures[options.texturePath].clone();
     //teapotTexture.repeat.set(1, 1);
 
@@ -84,7 +84,7 @@ var Pipe = function(scene, options) {
     teapot.rotation.z = (Math.floor(random(0, 50)) * Math.PI) / 2;
     self.object3d.add(teapot);
   };
-  var makeElbowJoint = function(fromPosition, toPosition, tangentVector) {
+  var makeElbowJoint = function (fromPosition, toPosition, tangentVector) {
     // elbow
     // var r = 0.2;
     // elbow = new THREE.Mesh(
@@ -153,7 +153,7 @@ var Pipe = function(scene, options) {
 
   makeBallJoint(self.currentPosition);
 
-  self.update = function() {
+  self.update = function () {
     if (self.positions.length > 1) {
       var lastPosition = self.positions[self.positions.length - 2];
       var lastDirectionVector = new THREE.Vector3().subVectors(
@@ -233,7 +233,7 @@ var options = {
   joints: jointTypeSelect.value,
   interval: [16, 24], // range of seconds between fade-outs... not necessarily anything like how the original works
 };
-jointTypeSelect.addEventListener("change", function() {
+jointTypeSelect.addEventListener("change", function () {
   options.joints = jointTypeSelect.value;
 });
 
@@ -294,7 +294,7 @@ function dissolve(seconds, endCallback) {
 
   dissolveRects = new Array(dissolveRectsPerRow * dissolveRectsPerColumn)
     .fill(null)
-    .map(function(_null, index) {
+    .map(function (_null, index) {
       return {
         x: index % dissolveRectsPerRow,
         y: Math.floor(index / dissolveRectsPerRow),
@@ -444,17 +444,12 @@ function animate() {
 }
 
 function look() {
-  // TODO: never don't change the view (except maybe while clearing)
-  if (chance(1 / 2)) {
-    // head-on view
-
-    camera.position.set(0, 0, 14);
-  } else {
+ 
     // random view
 
     var vector = new THREE.Vector3(14, 0, 0);
 
-    var axis = new THREE.Vector3(random(-1, 1), random(-1, 1), random(-1, 1));
+    var axis = new THREE.Vector3(random(-1, 1.5, 1), random(-1, 1.5, 1), random(-1, 1.5, 1));
     var angle = Math.PI / 2;
     var matrix = new THREE.Matrix4().makeRotationAxis(axis, angle);
 
@@ -463,14 +458,15 @@ function look() {
   }
   var center = new THREE.Vector3(0, 0, 0);
   camera.lookAt(center);
-  // camera.updateProjectionMatrix(); // maybe?
   controls.update();
-}
+
 look();
+
+
 
 addEventListener(
   "resize",
-  function() {
+  function () {
     renderer.setSize(window.innerWidth, window.innerHeight);
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -478,7 +474,20 @@ addEventListener(
   false
 );
 
-canvasContainer.addEventListener("mousedown", function(e) {
+canvasContainer.addEventListener("click", function (e) {
+  e.preventDefault();
+  if (!controls.enabled) {
+    if (e.button) {
+      clear(true);
+    } else {
+      look();
+    }
+  }
+  window.getSelection().removeAllRanges();
+  document.activeElement.blur();
+});
+
+canvasContainer.addEventListener("mousedown", function (e) {
   e.preventDefault();
   if (!controls.enabled) {
     if (e.button) {
@@ -493,37 +502,8 @@ canvasContainer.addEventListener("mousedown", function(e) {
 
 canvasContainer.addEventListener(
   "contextmenu",
-  function(e) {
+  function (e) {
     e.preventDefault();
-  },
-  false
-);
-
-var fullscreenButton = document.getElementById("fullscreen-button");
-fullscreenButton.addEventListener(
-  "click",
-  function(e) {
-    if (canvasContainer.requestFullscreen) {
-      // W3C API
-      canvasContainer.requestFullscreen();
-    } else if (canvasContainer.mozRequestFullScreen) {
-      // Mozilla current API
-      canvasContainer.mozRequestFullScreen();
-    } else if (canvasContainer.webkitRequestFullScreen) {
-      // Webkit current API
-      canvasContainer.webkitRequestFullScreen();
-    }
-  },
-  false
-);
-
-var toggleControlButton = document.getElementById("toggle-controls");
-toggleControlButton.addEventListener(
-  "click",
-  function(e) {
-    controls.enabled = !controls.enabled;
-    showElementsIf(".normal-controls-enabled", !controls.enabled);
-    showElementsIf(".orbit-controls-enabled", controls.enabled);
   },
   false
 );
@@ -540,7 +520,12 @@ function updateFromParametersInURL() {
         params = null;
       }
     } catch (error) {
-      alert("Invalid URL parameter JSON syntax\n\n" + error + "\n\nRecieved:\n" + paramsJSON);
+      alert(
+        "Invalid URL parameter JSON syntax\n\n" +
+          error +
+          "\n\nRecieved:\n" +
+          paramsJSON
+      );
     }
   }
   params = params || {};
@@ -587,7 +572,7 @@ function randomIntegerVector3WithinBox(box) {
   );
 }
 function showElementsIf(selector, condition) {
-  Array.from(document.querySelectorAll(selector)).forEach(function(el) {
+  Array.from(document.querySelectorAll(selector)).forEach(function (el) {
     if (condition) {
       el.removeAttribute("hidden");
     } else {
