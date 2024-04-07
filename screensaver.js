@@ -1,1 +1,416 @@
-var dissolveEndCallback,gridBounds=new THREE.Box3(new THREE.Vector3(-10,-10,-10),new THREE.Vector3(10,10,10)),nodes={};function setAt(e,t){nodes["("+e.x+", "+e.y+", "+e.z+")"]=t}function getAt(e,t){return nodes["("+e.x+", "+e.y+", "+e.z+")"]}function clearGrid(){nodes={}}var textures={},Pipe=function(e,t){var n=this;if(n.currentPosition=randomIntegerVector3WithinBox(gridBounds),n.positions=[n.currentPosition],n.object3d=new THREE.Object3D,e.add(n.object3d),t.texturePath)n.material=new THREE.MeshLambertMaterial({map:textures[t.texturePath]});else{var o=randomInteger(0,16777215),r=new THREE.Color(o).multiplyScalar(.3);n.material=new THREE.MeshPhongMaterial({specular:11140351,color:o,emissive:r,shininess:100})}var i=function(e,t,o){var r=new THREE.Vector3().subVectors(t,e),i=new THREE.ArrowHelper(r.clone().normalize(),e),a=new THREE.CylinderGeometry(.2,.2,r.length(),10,4,!0),s=new THREE.Mesh(a,o);s.rotation.setFromQuaternion(i.quaternion),s.position.addVectors(e,r.multiplyScalar(.5)),s.updateMatrix(),n.object3d.add(s)},a=function(e){var t=new THREE.Mesh(new THREE.SphereGeometry(.30000000000000004,8,8),n.material);t.position.copy(e),n.object3d.add(t)},s=function(e){var t=new THREE.Mesh(new THREE.TeapotBufferGeometry(.30000000000000004,!0,!0,!0,!0,!0),n.material);t.position.copy(e),t.rotation.x=Math.floor(random(0,50))*Math.PI/2,t.rotation.y=Math.floor(random(0,50))*Math.PI/2,t.rotation.z=Math.floor(random(0,50))*Math.PI/2,n.object3d.add(t)},c=function(e,t,o){var r=new THREE.Mesh(new THREE.SphereGeometry(.2,8,8),n.material);r.position.copy(e),n.object3d.add(r)};setAt(n.currentPosition,n),a(n.currentPosition),n.update=function(){if(n.positions.length>1)var e=n.positions[n.positions.length-2],o=new THREE.Vector3().subVectors(n.currentPosition,e);if(chance(.5)&&o)var r=o;else{var r=new THREE.Vector3;r[chooseFrom("xyz")]+=chooseFrom([1,-1])}var l=new THREE.Vector3().addVectors(n.currentPosition,r);!(!gridBounds.containsPoint(l)||getAt(l))&&(setAt(l,n),o&&!o.equals(r)&&(chance(t.teapotChance)?s(n.currentPosition):chance(t.ballJointChance)?a(n.currentPosition):c(n.currentPosition,l,o)),i(n.currentPosition,l,n.material),n.currentPosition=l,n.positions.push(l))}},JOINTS_ELBOW="elbow",JOINTS_BALL="ball",JOINTS_MIXED="mixed",JOINTS_CYCLE="cycle",jointsCycleArray=[JOINTS_ELBOW,JOINTS_BALL,JOINTS_MIXED],jointsCycleIndex=0,jointTypeSelect=document.getElementById("joint-types"),pipes=[],options={multiple:!0,texturePath:null,joints:jointTypeSelect.value,interval:[16,24]};jointTypeSelect.addEventListener("change",function(){options.joints=jointTypeSelect.value});var canvasContainer=document.getElementById("canvas-container"),canvas2d=document.getElementById("canvas-2d"),ctx2d=canvas2d.getContext("2d"),canvasWebGL=document.getElementById("canvas-webgl"),renderer=new THREE.WebGLRenderer({alpha:!0,antialias:!0,canvas:canvasWebGL});renderer.setSize(window.innerWidth,window.innerHeight);var camera=new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,1,1e5),controls=new THREE.OrbitControls(camera,renderer.domElement);controls.enabled=!1;var scene=new THREE.Scene,ambientLight=new THREE.AmbientLight(1118481);scene.add(ambientLight);var directionalLightL=new THREE.DirectionalLight(16777215,.9);directionalLightL.position.set(-1.2,1.5,.5),scene.add(directionalLightL);var dissolveRects=[],dissolveRectsIndex=-1,dissolveRectsPerRow=50,dissolveRectsPerColumn=50,dissolveTransitionSeconds=2,dissolveTransitionFrames=60*dissolveTransitionSeconds;function dissolve(e,t){shuffleArrayInPlace(dissolveRects=Array((dissolveRectsPerRow=Math.ceil(window.innerWidth/20))*(dissolveRectsPerColumn=Math.ceil(window.innerHeight/20))).fill(null).map(function(e,t){return{x:t%dissolveRectsPerRow,y:Math.floor(t/dissolveRectsPerRow)}})),dissolveRectsIndex=0,dissolveTransitionFrames=60*(dissolveTransitionSeconds=e),dissolveEndCallback=t}function finishDissolve(){dissolveEndCallback(),dissolveRects=[],dissolveRectsIndex=-1,ctx2d.clearRect(0,0,canvas2d.width,canvas2d.height)}var clearing=!1,clearTID=-1;function clear(e){clearTimeout(clearTID),clearTID=setTimeout(clear,1e3*random(options.interval[0],options.interval[1])),!clearing&&(clearing=!0,dissolve(e?.2:2,reset))}function reset(){renderer.clear();for(var e=0;e<pipes.length;e++)scene.remove(pipes[e].object3d);pipes=[],clearGrid(),look(),clearing=!1}function animate(){if(controls.update(),options.texturePath&&!textures[options.texturePath]){var e=THREE.ImageUtils.loadTexture(options.texturePath);e.wrapS=e.wrapT=THREE.RepeatWrapping,e.repeat.set(2,2),textures[options.texturePath]=e}for(var t=0;t<pipes.length;t++)pipes[t].update(scene);if(0===pipes.length){var n=options.joints;options.joints===JOINTS_CYCLE&&(n=jointsCycleArray[jointsCycleIndex++]);var o={teapotChance:.005,ballJointChance:n===JOINTS_BALL?1:n===JOINTS_MIXED?1/3:0,texturePath:options.texturePath};if(chance(.05)&&(o.teapotChance=.05,o.texturePath="images/textures/candycane.png",!textures[o.texturePath])){var e=THREE.ImageUtils.loadTexture(o.texturePath);e.wrapS=e.wrapT=THREE.RepeatWrapping,e.repeat.set(2,2),textures[o.texturePath]=e}for(var t=0;t<1+options.multiple*(1+chance(.1));t++)pipes.push(new Pipe(scene,o))}if(clearing||renderer.render(scene,camera),(canvas2d.width!==window.innerWidth||canvas2d.height!==window.innerHeight)&&(canvas2d.width=window.innerWidth,canvas2d.height=window.innerHeight,dissolveRectsIndex>-1))for(var t=0;t<dissolveRectsIndex;t++){var r=dissolveRects[t],i=innerWidth/dissolveRectsPerRow,a=innerHeight/dissolveRectsPerColumn;ctx2d.fillStyle="black",ctx2d.fillRect(Math.floor(r.x*i),Math.floor(r.y*a),Math.ceil(i),Math.ceil(a))}if(dissolveRectsIndex>-1){for(var s=Math.floor(dissolveRects.length/dissolveTransitionFrames),t=0;t<s&&dissolveRectsIndex<dissolveRects.length;t++){var r=dissolveRects[dissolveRectsIndex],i=innerWidth/dissolveRectsPerRow,a=innerHeight/dissolveRectsPerColumn;ctx2d.fillStyle="black",ctx2d.fillRect(Math.floor(r.x*i),Math.floor(r.y*a),Math.ceil(i),Math.ceil(a)),dissolveRectsIndex+=1}dissolveRectsIndex===dissolveRects.length&&finishDissolve()}requestAnimationFrame(animate)}function look(){var e=new THREE.Vector3(14,0,0),t=new THREE.Vector3(random(-1,1.5,1),random(-1,1.5,1),random(-1,1.5,1)),n=new THREE.Matrix4().makeRotationAxis(t,Math.PI/2);e.applyMatrix4(n),camera.position.copy(e)}clearTID=setTimeout(clear,1e3*random(options.interval[0],options.interval[1]));var center=new THREE.Vector3(0,0,0);function updateFromParametersInURL(){var e=decodeURIComponent(location.hash.replace(/^#/,""));if(e)try{var t=JSON.parse(e);"object"!=typeof t&&(alert("Invalid URL parameter JSON: top level value must be an object"),t=null)}catch(n){alert("Invalid URL parameter JSON syntax\n\n"+n+"\n\nRecieved:\n"+e)}showElementsIf(".ui-container",!(t=t||{}).hideUI)}function random(e,t){return Math.random()*(t-e)+e}function randomInteger(e,t){return Math.round(random(e,t))}function chance(e){return Math.random()<e}function chooseFrom(e){return e[Math.floor(Math.random()*e.length)]}function shuffleArrayInPlace(e){for(var t=e.length-1;t>0;t--){var n=Math.floor(Math.random()*(t+1)),o=e[t];e[t]=e[n],e[n]=o}}function randomIntegerVector3WithinBox(e){return new THREE.Vector3(randomInteger(e.min.x,e.max.x),randomInteger(e.min.y,e.max.y),randomInteger(e.min.z,e.max.z))}function showElementsIf(e,t){Array.from(document.querySelectorAll(e)).forEach(function(e){t?e.removeAttribute("hidden"):e.setAttribute("hidden","hidden")})}camera.lookAt(center),controls.update(),look(),addEventListener("resize",function(){renderer.setSize(window.innerWidth,window.innerHeight),camera.aspect=window.innerWidth/window.innerHeight,camera.updateProjectionMatrix()},!1),canvasContainer.addEventListener("mousedown",function(e){e.preventDefault(),controls.enabled||(e.button?clear(!0):look()),window.getSelection().removeAllRanges(),document.activeElement.blur()}),canvasContainer.addEventListener("contextmenu",function(e){e.preventDefault()},!1),updateFromParametersInURL(),window.addEventListener("hashchange",updateFromParametersInURL),animate();
+var gridBounds = new THREE.Box3(
+  new THREE.Vector3(-10, -10, -10),
+  new THREE.Vector3(10, 10, 10)
+);
+var nodes = {};
+function setAt(position, value) {
+  nodes["(" + position.x + ", " + position.y + ", " + position.z + ")"] = value;
+}
+function getAt(position, value) {
+  return nodes["(" + position.x + ", " + position.y + ", " + position.z + ")"];
+}
+function clearGrid() {
+  nodes = {};
+}
+var textures = {};
+var Pipe = function (scene, options) {
+  var self = this;
+  var pipeRadius = 0.2;
+  var ballJointRadius = pipeRadius * 1.5;
+  var teapotSize = ballJointRadius;
+  self.currentPosition = randomIntegerVector3WithinBox(gridBounds);
+  self.positions = [self.currentPosition];
+  self.object3d = new THREE.Object3D();
+  scene.add(self.object3d);
+  if (options.texturePath) {
+    self.material = new THREE.MeshLambertMaterial({
+      map: textures[options.texturePath],
+    });
+  } else {
+    var color = randomInteger(0, 0xffffff);
+    var emissive = new THREE.Color(color).multiplyScalar(0.3);
+    self.material = new THREE.MeshPhongMaterial({
+      specular: 0xa9fcff,
+      color: color,
+      emissive: emissive,
+      shininess: 100,
+    });
+  }
+  var makeCylinderBetweenPoints = function (fromPoint, toPoint, material) {
+    var deltaVector = new THREE.Vector3().subVectors(toPoint, fromPoint);
+    var arrow = new THREE.ArrowHelper(
+      deltaVector.clone().normalize(),
+      fromPoint
+    );
+    var geometry = new THREE.CylinderGeometry(
+      pipeRadius,
+      pipeRadius,
+      deltaVector.length(),
+      10,
+      4,
+      true
+    );
+    var mesh = new THREE.Mesh(geometry, material);
+    mesh.rotation.setFromQuaternion(arrow.quaternion);
+    mesh.position.addVectors(fromPoint, deltaVector.multiplyScalar(0.5));
+    mesh.updateMatrix();
+    self.object3d.add(mesh);
+  };
+  var makeBallJoint = function (position) {
+    var ball = new THREE.Mesh(
+      new THREE.SphereGeometry(ballJointRadius, 8, 8),
+      self.material
+    );
+    ball.position.copy(position);
+    self.object3d.add(ball);
+  };
+  var makeTeapotJoint = function (position) {
+    var teapot = new THREE.Mesh(
+      new THREE.TeapotBufferGeometry(teapotSize, true, true, true, true, true),
+      self.material
+    );
+    teapot.position.copy(position);
+    teapot.rotation.x = (Math.floor(random(0, 50)) * Math.PI) / 2;
+    teapot.rotation.y = (Math.floor(random(0, 50)) * Math.PI) / 2;
+    teapot.rotation.z = (Math.floor(random(0, 50)) * Math.PI) / 2;
+    self.object3d.add(teapot);
+  };
+  var makeElbowJoint = function (fromPosition, toPosition, tangentVector) {
+    var elball = new THREE.Mesh(
+      new THREE.SphereGeometry(pipeRadius, 8, 8),
+      self.material
+    );
+    elball.position.copy(fromPosition);
+    self.object3d.add(elball);
+  };
+  setAt(self.currentPosition, self);
+  makeBallJoint(self.currentPosition);
+  self.update = function () {
+    if (self.positions.length > 1) {
+      var lastPosition = self.positions[self.positions.length - 2];
+      var lastDirectionVector = new THREE.Vector3().subVectors(
+        self.currentPosition,
+        lastPosition
+      );
+    }
+    if (chance(1 / 2) && lastDirectionVector) {
+      var directionVector = lastDirectionVector;
+    } else {
+      var directionVector = new THREE.Vector3();
+      directionVector[chooseFrom("xyz")] += chooseFrom([+1, -1]);
+    }
+    var newPosition = new THREE.Vector3().addVectors(
+      self.currentPosition,
+      directionVector
+    );
+    if (!gridBounds.containsPoint(newPosition)) {
+      return;
+    }
+    if (getAt(newPosition)) {
+      return;
+    }
+    setAt(newPosition, self);
+    if (lastDirectionVector && !lastDirectionVector.equals(directionVector)) {
+      if (chance(options.teapotChance)) {
+        makeTeapotJoint(self.currentPosition);
+      } else if (chance(options.ballJointChance)) {
+        makeBallJoint(self.currentPosition);
+      } else {
+        makeElbowJoint(self.currentPosition, newPosition, lastDirectionVector);
+      }
+    }
+    makeCylinderBetweenPoints(self.currentPosition, newPosition, self.material);
+    self.currentPosition = newPosition;
+    self.positions.push(newPosition);
+  };
+};
+var JOINTS_ELBOW = "elbow";
+var JOINTS_BALL = "ball";
+var JOINTS_MIXED = "mixed";
+var JOINTS_CYCLE = "cycle";
+var jointsCycleArray = [JOINTS_ELBOW, JOINTS_BALL, JOINTS_MIXED];
+var jointsCycleIndex = 0;
+var jointTypeSelect = document.getElementById("joint-types");
+var pipes = [];
+var options = {
+  multiple: true,
+  texturePath: null,
+  joints: jointTypeSelect.value,
+  interval: [16, 24],
+};
+jointTypeSelect.addEventListener("change", function () {
+  options.joints = jointTypeSelect.value;
+});
+var canvasContainer = document.getElementById("canvas-container");
+var canvas2d = document.getElementById("canvas-2d");
+var ctx2d = canvas2d.getContext("2d");
+var canvasWebGL = document.getElementById("canvas-webgl");
+var renderer = new THREE.WebGLRenderer({
+  alpha: true,
+  antialias: true,
+  canvas: canvasWebGL,
+});
+renderer.setSize(window.innerWidth, window.innerHeight);
+var camera = new THREE.PerspectiveCamera(
+  45,
+  window.innerWidth / window.innerHeight,
+  1,
+  100000
+);
+var controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enabled = false;
+var scene = new THREE.Scene();
+var ambientLight = new THREE.AmbientLight(0x111111);
+scene.add(ambientLight);
+var directionalLightL = new THREE.DirectionalLight(0xffffff, 0.9);
+directionalLightL.position.set(-1.2, 1.5, 0.5);
+scene.add(directionalLightL);
+var dissolveRects = [];
+var dissolveRectsIndex = -1;
+var dissolveRectsPerRow = 50;
+var dissolveRectsPerColumn = 50;
+var dissolveTransitionSeconds = 2;
+var dissolveTransitionFrames = dissolveTransitionSeconds * 60;
+var dissolveEndCallback;
+function dissolve(seconds, endCallback) {
+  dissolveRectsPerRow = Math.ceil(window.innerWidth / 20);
+  dissolveRectsPerColumn = Math.ceil(window.innerHeight / 20);
+  dissolveRects = new Array(dissolveRectsPerRow * dissolveRectsPerColumn)
+    .fill(null)
+    .map(function (_null, index) {
+      return {
+        x: index % dissolveRectsPerRow,
+        y: Math.floor(index / dissolveRectsPerRow),
+      };
+    });
+  shuffleArrayInPlace(dissolveRects);
+  dissolveRectsIndex = 0;
+  dissolveTransitionSeconds = seconds;
+  dissolveTransitionFrames = dissolveTransitionSeconds * 60;
+  dissolveEndCallback = endCallback;
+}
+function finishDissolve() {
+  dissolveEndCallback();
+  dissolveRects = [];
+  dissolveRectsIndex = -1;
+  ctx2d.clearRect(0, 0, canvas2d.width, canvas2d.height);
+}
+var clearing = false;
+var clearTID = -1;
+function clear(fast) {
+  clearTimeout(clearTID);
+  clearTID = setTimeout(
+    clear,
+    random(options.interval[0], options.interval[1]) * 1000
+  );
+  if (!clearing) {
+    clearing = true;
+    var fadeOutTime = fast ? 0.2 : 2;
+    dissolve(fadeOutTime, reset);
+  }
+}
+clearTID = setTimeout(
+  clear,
+  random(options.interval[0], options.interval[1]) * 1000
+);
+function reset() {
+  renderer.clear();
+  for (var i = 0; i < pipes.length; i++) {
+    scene.remove(pipes[i].object3d);
+  }
+  pipes = [];
+  clearGrid();
+  look();
+  clearing = false;
+}
+function animate() {
+  controls.update();
+  if (options.texturePath && !textures[options.texturePath]) {
+    var texture = THREE.ImageUtils.loadTexture(options.texturePath);
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(2, 2);
+    textures[options.texturePath] = texture;
+  }
+  for (var i = 0; i < pipes.length; i++) {
+    pipes[i].update(scene);
+  }
+  if (pipes.length === 0) {
+    var jointType = options.joints;
+    if (options.joints === JOINTS_CYCLE) {
+      jointType = jointsCycleArray[jointsCycleIndex++];
+    }
+    var pipeOptions = {
+      teapotChance: 1 / 200,
+      ballJointChance:
+        jointType === JOINTS_BALL ? 1 : jointType === JOINTS_MIXED ? 1 / 3 : 0,
+      texturePath: options.texturePath,
+    };
+    if (chance(1 / 20)) {
+      pipeOptions.teapotChance = 1 / 20;
+      pipeOptions.texturePath = "images/textures/candycane.png";
+      if (!textures[pipeOptions.texturePath]) {
+        var texture = THREE.ImageUtils.loadTexture(pipeOptions.texturePath);
+        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(2, 2);
+        textures[pipeOptions.texturePath] = texture;
+      }
+    }
+    for (var i = 0; i < 1 + options.multiple * (1 + chance(1 / 10)); i++) {
+      pipes.push(new Pipe(scene, pipeOptions));
+    }
+  }
+  if (!clearing) {
+    renderer.render(scene, camera);
+  }
+  if (
+    canvas2d.width !== window.innerWidth ||
+    canvas2d.height !== window.innerHeight
+  ) {
+    canvas2d.width = window.innerWidth;
+    canvas2d.height = window.innerHeight;
+    if (dissolveRectsIndex > -1) {
+      for (var i = 0; i < dissolveRectsIndex; i++) {
+        var rect = dissolveRects[i];
+        var rectWidth = innerWidth / dissolveRectsPerRow;
+        var rectHeight = innerHeight / dissolveRectsPerColumn;
+        ctx2d.fillStyle = "black";
+        ctx2d.fillRect(
+          Math.floor(rect.x * rectWidth),
+          Math.floor(rect.y * rectHeight),
+          Math.ceil(rectWidth),
+          Math.ceil(rectHeight)
+        );
+      }
+    }
+  }
+  if (dissolveRectsIndex > -1) {
+    var rectsAtATime = Math.floor(
+      dissolveRects.length / dissolveTransitionFrames
+    );
+    for (
+      var i = 0;
+      i < rectsAtATime && dissolveRectsIndex < dissolveRects.length;
+      i++
+    ) {
+      var rect = dissolveRects[dissolveRectsIndex];
+      var rectWidth = innerWidth / dissolveRectsPerRow;
+      var rectHeight = innerHeight / dissolveRectsPerColumn;
+      ctx2d.fillStyle = "black";
+      ctx2d.fillRect(
+        Math.floor(rect.x * rectWidth),
+        Math.floor(rect.y * rectHeight),
+        Math.ceil(rectWidth),
+        Math.ceil(rectHeight)
+      );
+      dissolveRectsIndex += 1;
+    }
+    if (dissolveRectsIndex === dissolveRects.length) {
+      finishDissolve();
+    }
+  }
+  requestAnimationFrame(animate);
+}
+function look() {
+  var vector = new THREE.Vector3(14, 0, 0);
+  var axis = new THREE.Vector3(
+    random(-1, 1.5, 1),
+    random(-1, 1.5, 1),
+    random(-1, 1.5, 1)
+  );
+  var angle = Math.PI / 2;
+  var matrix = new THREE.Matrix4().makeRotationAxis(axis, angle);
+  vector.applyMatrix4(matrix);
+  camera.position.copy(vector);
+}
+var center = new THREE.Vector3(0, 0, 0);
+camera.lookAt(center);
+controls.update();
+look();
+addEventListener(
+  "resize",
+  function () {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+  },
+  false
+);
+canvasContainer.addEventListener("mousedown", function (e) {
+  e.preventDefault();
+  if (!controls.enabled) {
+    if (e.button) {
+      clear(true);
+    } else {
+      look();
+    }
+  }
+  window.getSelection().removeAllRanges();
+  document.activeElement.blur();
+});
+canvasContainer.addEventListener(
+  "contextmenu",
+  function (e) {
+    e.preventDefault();
+  },
+  false
+);
+function updateFromParametersInURL() {
+  var paramsJSON = decodeURIComponent(location.hash.replace(/^#/, ""));
+  if (paramsJSON) {
+    try {
+      var params = JSON.parse(paramsJSON);
+      if (typeof params !== "object") {
+        alert("Invalid URL parameter JSON: top level value must be an object");
+        params = null;
+      }
+    } catch (error) {
+      alert(
+        "Invalid URL parameter JSON syntax\n\n" +
+          error +
+          "\n\nRecieved:\n" +
+          paramsJSON
+      );
+    }
+  }
+  params = params || {};
+  showElementsIf(".ui-container", !params.hideUI);
+}
+updateFromParametersInURL();
+window.addEventListener("hashchange", updateFromParametersInURL);
+animate();
+function random(x1, x2) {
+  return Math.random() * (x2 - x1) + x1;
+}
+function randomInteger(x1, x2) {
+  return Math.round(random(x1, x2));
+}
+function chance(value) {
+  return Math.random() < value;
+}
+function chooseFrom(values) {
+  return values[Math.floor(Math.random() * values.length)];
+}
+function shuffleArrayInPlace(array) {
+  for (var i = array.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var temp = array[i];
+    array[i] = array[j];
+    array[j] = temp;
+  }
+}
+function randomIntegerVector3WithinBox(box) {
+  return new THREE.Vector3(
+    randomInteger(box.min.x, box.max.x),
+    randomInteger(box.min.y, box.max.y),
+    randomInteger(box.min.z, box.max.z)
+  );
+}
+function showElementsIf(selector, condition) {
+  Array.from(document.querySelectorAll(selector)).forEach(function (el) {
+    if (condition) {
+      el.removeAttribute("hidden");
+    } else {
+      el.setAttribute("hidden", "hidden");
+    }
+  });
+}
